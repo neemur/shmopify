@@ -77,6 +77,13 @@
             <aside class="w-full md:w-1/4 p-4 bg-gray-700 flex flex-col space-y-4 border-r border-gray-600">
                 <h3 class="text-lg font-semibold text-gray-100">Playlists</h3>
                 
+                <div id="upload-section" class="space-y-2 p-3 bg-gray-800 rounded-md">
+                    <h4 class="text-md font-semibold text-gray-100">Upload Music</h4>
+                    <input type="file" id="music-file-input" accept=".mp3, .m4a, .flac, .ogg" class="text-sm w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    <button id="upload-music-btn" class="w-full p-2 bg-green-600 hover:bg-green-700 rounded-md text-sm font-medium disabled:opacity-50" disabled>Upload Song</button>
+                    <p id="upload-message" class="text-xs text-center text-gray-400"></p>
+                </div>
+
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="new-playlist-name" placeholder="New Playlist Name" class="flex-grow p-2 text-sm rounded-md bg-gray-800 border border-gray-600">
                     <button id="create-playlist-btn" class="p-2 bg-indigo-500 hover:bg-indigo-400 rounded-md text-sm font-medium">Create</button>
@@ -169,6 +176,12 @@
         const playlistDropdownMenu = document.getElementById('playlist-dropdown-menu');
         const dropdownPlaylistList = document.getElementById('dropdown-playlist-list');
 
+        // New Upload Elements
+        const musicFileInput = document.getElementById('music-file-input');
+        const uploadMusicBtn = document.getElementById('upload-music-btn');
+        const uploadMessage = document.getElementById('upload-message');
+
+
         // --- Global State for Dropdown ---
         let currentDropdownSongId = null;
         let activeDropdownButton = null;
@@ -238,6 +251,10 @@
                 fetchSongs();
                 fetchPlaylists();
                 libraryLinkElement.addEventListener('click', loadLibraryView);
+                
+                // Attach Upload Listeners
+                musicFileInput.addEventListener('change', handleFileChange);
+                uploadMusicBtn.addEventListener('click', handleUploadClick);
 
             } else {
                 loginFormElement.classList.remove('hidden');
@@ -341,7 +358,7 @@
         });
 
 
-        // --- Song View Management ---
+        // --- Song View Management (Unchanged from previous step) ---
 
         /**
          * Renders the filtered list of songs to the UI.
@@ -452,8 +469,9 @@
         
         // --- Song Search Event Listener (Unchanged) ---
         songSearchInput.addEventListener('keyup', filterSongs);
-        
-        // --- Playlist View Functions ---
+        libraryTitleElement.addEventListener('click', loadLibraryView);
+
+        // --- Playlist View Functions (Unchanged from previous step) ---
 
         /**
          * Switches the main view to the full music library.
@@ -482,7 +500,10 @@
 
             // Update sidebar visual state
             document.querySelectorAll('.playlist-item').forEach(item => item.classList.remove('active'));
-            document.querySelector(`.playlist-item[data-playlist-id="${playlistId}"]`).classList.add('active');
+            const activeItem = document.querySelector(`.playlist-item[data-playlist-id="${playlistId}"]`);
+            if (activeItem) {
+                 activeItem.classList.add('active');
+            }
 
 
             try {
@@ -506,7 +527,7 @@
         }
 
 
-        // --- Playlist Dropdown Functions ---
+        // --- Playlist Dropdown Functions (Unchanged from previous step) ---
 
         /**
          * Toggles the playlist dropdown menu, positioning it next to the clicked button.
@@ -706,6 +727,74 @@
                 createPlaylistBtn.disabled = false;
             }
         });
+        
+        // --- Upload Handlers (NEW) ---
+
+        function handleFileChange() {
+            // Enable button only if a file is selected
+            uploadMusicBtn.disabled = musicFileInput.files.length === 0;
+            uploadMessage.textContent = '';
+        }
+
+        async function handleUploadClick() {
+            const file = musicFileInput.files[0];
+            if (!file) {
+                uploadMessage.textContent = 'Please select a file first.';
+                uploadMessage.className = 'text-xs text-center text-red-400';
+                return;
+            }
+
+            // Basic file type check
+            const allowedExtensions = ['.mp3', '.m4a', '.flac', '.ogg'];
+            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+            if (!allowedExtensions.includes(fileExtension)) {
+                 uploadMessage.textContent = `File type not allowed. Must be one of: ${allowedExtensions.join(', ')}`;
+                 uploadMessage.className = 'text-xs text-center text-red-400';
+                 return;
+            }
+
+
+            uploadMusicBtn.disabled = true;
+            uploadMessage.textContent = `Uploading ${file.name}...`;
+            uploadMessage.className = 'text-xs text-center text-yellow-400';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/upload`, {
+                    method: 'POST',
+                    // Do NOT set Content-Type header when using FormData
+                    headers: {
+                        'Authorization': `Bearer ${currentAuthToken}`,
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    uploadMessage.textContent = data.message;
+                    uploadMessage.className = 'text-xs text-center text-green-400';
+                    musicFileInput.value = ''; // Clear input
+                    uploadMusicBtn.disabled = true; // Disable until new file selected
+                    // Refresh the music library list
+                    fetchSongs(); 
+                } else {
+                    uploadMessage.textContent = data.error || 'Upload failed due to a server error.';
+                    uploadMessage.className = 'text-xs text-center text-red-400';
+                }
+            } catch (error) {
+                console.error("Network Error during file upload:", error);
+                uploadMessage.textContent = 'Network error during upload.';
+                uploadMessage.className = 'text-xs text-center text-red-400';
+            } finally {
+                // Re-enable button if upload failed and file is still selected
+                if (musicFileInput.files.length > 0) {
+                     uploadMusicBtn.disabled = false;
+                }
+            }
+        }
 
 
         // --- Initialization ---

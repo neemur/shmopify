@@ -6,151 +6,126 @@
     <title>Secure Barebones Streamer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom scrollbar for aesthetics */
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 8px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background-color: #4b5563;
-            border-radius: 20px;
-            border: 2px solid #1f2937;
-        }
-        .tab-active {
-            border-bottom: 2px solid #6366f1; /* Indigo-500 */
-            color: #e5e7eb; /* Text-gray-100 */
-        }
-        .tab-inactive {
-            color: #9ca3af; /* Text-gray-400 */
-        }
-        .song-row:hover {
-            background-color: #374151; /* Gray-700 */
-        }
-        .song-row.playing {
-            background-color: #4f46e5; /* Indigo-600 */
-        }
-        /* Style for the floating playlist dropdown */
-        #playlist-dropdown-menu {
-            position: absolute;
-            z-index: 50; /* Above everything else */
-            max-height: 200px;
-            overflow-y: auto;
-            transform: translate(0, -10px); /* Slightly lift it above the button */
-        }
-        /* Style for active playlist/library tab */
-        .playlist-item.active, #library-title.active {
-            border-left: 3px solid #6366f1;
-            background-color: #374151; /* Gray-700 */
-        }
+        .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #1f2937; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 20px; border: 2px solid #1f2937; }
+        .song-row:hover { background-color: #374151; }
+        .song-row.playing { background-color: #4f46e5; }
+        .playlist-item.active, #library-title.active { border-left: 3px solid #6366f1; background-color: #374151; }
+        #playlist-dropdown-menu { position: absolute; z-index: 50; max-height: 200px; overflow-y: auto; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 font-sans">
+<body class="bg-gray-900 text-gray-100 h-screen font-sans overflow-hidden flex flex-col">
 
     <script type="module">
         /* Placeholder for potential future Firebase integration */
     </script>
     
-    <div id="app" class="max-w-7xl mx-auto shadow-2xl rounded-xl overflow-hidden bg-gray-800">
+    <div id="app" class="w-full h-full flex flex-col bg-gray-800">
 
-        <header class="p-6 bg-gray-900 border-b border-gray-700 flex justify-between items-center">
+        <header class="p-6 bg-gray-900 border-b border-gray-700 flex justify-between items-center shrink-0">
             <h1 class="text-3xl font-bold text-indigo-400">Shmopify 🎵</h1>
-            <div id="auth-status" class="text-sm">
-                </div>
+            <div id="auth-status" class="text-sm"></div>
         </header>
 
-        <div id="login-form" class="p-8 space-y-4 hidden transition duration-300">
-            <h2 class="text-xl font-semibold text-gray-100">Access Restricted</h2>
-            <p class="text-gray-400">Enter your whitelisted email to receive a secure login code.</p>
-            <input type="email" id="email-input" placeholder="Email Address" class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
-            <button id="request-code-btn" class="w-full p-3 bg-indigo-600 hover:bg-indigo-700 rounded-md font-semibold transition duration-150">Request Login Code</button>
-            <div id="code-input-area" class="space-y-4 hidden">
-                <input type="text" id="code-input" placeholder="6-Digit Code" class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" maxlength="6">
-                <button id="verify-code-btn" class="w-full p-3 bg-green-600 hover:bg-green-700 rounded-md font-semibold transition duration-150">Verify Code & Login</button>
+        <div id="login-form" class="flex-grow flex flex-col justify-center items-center hidden transition duration-300 p-4">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-700">
+                <h2 class="text-xl font-semibold text-gray-100 mb-2">Access Restricted</h2>
+                <p class="text-gray-400 mb-4">Enter your whitelisted email for a 1-week session.</p>
+                <input type="email" id="email-input" placeholder="Email Address" class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 mb-4">
+                <button id="request-code-btn" class="w-full p-3 bg-indigo-600 hover:bg-indigo-700 rounded-md font-semibold transition duration-150 mb-4">Request Login Code</button>
+                
+                <div id="code-input-area" class="space-y-4 hidden">
+                    <input type="text" id="code-input" placeholder="6-Digit Code" class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" maxlength="6">
+                    <button id="verify-code-btn" class="w-full p-3 bg-green-600 hover:bg-green-700 rounded-md font-semibold transition duration-150">Verify & Login</button>
+                </div>
+                <p id="auth-message" class="text-sm text-center text-red-400 mt-2 min-h-[20px]"></p>
             </div>
-            <p id="auth-message" class="text-sm text-center text-red-400"></p>
         </div>
 
-        <div id="main-content" class="flex flex-col md:flex-row h-[80vh] hidden relative"> 
+        <div id="main-content" class="flex-grow flex flex-col md:flex-row overflow-hidden hidden relative"> 
             
-            <aside class="w-full md:w-1/4 p-4 bg-gray-700 flex flex-col space-y-4 border-r border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-100">Playlists</h3>
-                
-                <div id="upload-section" class="space-y-2 p-3 bg-gray-800 rounded-md">
-                    <h4 class="text-md font-semibold text-gray-100">Upload Music</h4>
-                    <input type="file" id="music-file-input" accept=".mp3, .m4a, .flac, .ogg" class="text-sm w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
-                    <button id="upload-music-btn" class="w-full p-2 bg-green-600 hover:bg-green-700 rounded-md text-sm font-medium disabled:opacity-50" disabled>Upload Song</button>
-                    <p id="upload-message" class="text-xs text-center text-gray-400"></p>
+            <aside class="w-full md:w-1/4 bg-gray-700 flex flex-col border-r border-gray-600 overflow-hidden">
+                <div class="p-4 space-y-4 shrink-0">
+                    <h3 class="text-lg font-semibold text-gray-100">Library Tools</h3>
+                    
+                    <div id="upload-section" class="space-y-2 p-3 bg-gray-800 rounded-md">
+                        <h4 class="text-md font-semibold text-gray-100">Upload Music</h4>
+                        <input type="file" id="music-file-input" accept=".mp3, .m4a, .flac, .ogg" class="text-sm w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                        <button id="upload-music-btn" class="w-full p-2 bg-green-600 hover:bg-green-700 rounded-md text-sm font-medium disabled:opacity-50" disabled>Upload Song</button>
+                        <p id="upload-message" class="text-xs text-center text-gray-400"></p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <input type="text" id="new-playlist-name" placeholder="New Playlist Name" class="w-full p-2 text-sm rounded-md bg-gray-800 border border-gray-600">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="new-playlist-public" class="rounded bg-gray-800 border-gray-600 text-indigo-500 focus:ring-indigo-500">
+                            <label for="new-playlist-public" class="text-xs text-gray-400">Make Public</label>
+                            <button id="create-playlist-btn" class="ml-auto p-1 px-3 bg-indigo-500 hover:bg-indigo-400 rounded-md text-sm font-medium">Create</button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex space-x-2 mb-4">
-                    <input type="text" id="new-playlist-name" placeholder="New Playlist Name" class="flex-grow p-2 text-sm rounded-md bg-gray-800 border border-gray-600">
-                    <button id="create-playlist-btn" class="p-2 bg-indigo-500 hover:bg-indigo-400 rounded-md text-sm font-medium">Create</button>
-                </div>
-
-                <div id="playlist-list" class="flex-grow space-y-2 overflow-y-auto scrollbar-thin">
+                <div class="flex-grow overflow-y-auto scrollbar-thin p-4 pt-0 space-y-2">
                     <div id="library-link" class="p-3 bg-gray-800 hover:bg-gray-600 transition duration-150 rounded-md cursor-pointer playlist-item active">
                         <p class="text-sm font-medium">Full Library</p>
                     </div>
                     
-                    <div id="playlists-container" class="space-y-2">
-                        </div>
+                    <div id="playlists-container" class="space-y-2"></div>
                 </div>
             </aside>
             
-            <main class="w-full md:w-3/4 flex flex-col">
+            <main class="w-full md:w-3/4 flex flex-col overflow-hidden bg-gray-800">
                 
-                <div class="p-4 flex flex-col flex-grow">
+                <div class="p-4 shrink-0">
                     <div class="flex justify-between items-center mb-4">
                         <h3 id="library-title" class="text-2xl font-semibold text-gray-100 cursor-pointer">Music Library</h3>
+                        <div id="playlist-meta" class="text-xs text-gray-400 text-right hidden"></div>
                     </div>
                     
                     <div class="mb-4">
                         <input type="search" id="song-search-input" placeholder="Search by Title, Artist, or Album..." class="w-full p-3 rounded-lg bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
-                    <div class="grid grid-cols-12 gap-4 text-xs font-semibold uppercase text-gray-400 border-b border-gray-700 pb-2 mb-2 px-2">
+                    <div class="grid grid-cols-12 gap-4 text-xs font-semibold uppercase text-gray-400 border-b border-gray-700 pb-2 px-2">
                         <div class="col-span-3">Title</div>
                         <div class="col-span-4">Artist</div>
                         <div class="col-span-3">Album</div>
                         <div class="col-span-1 text-right">Time</div>
-                        <div class="col-span-1 text-center">Action</div> </div>
-
-                    <div id="song-list" class="flex-grow overflow-y-auto scrollbar-thin space-y-1">
-                        <div class="text-center p-8 text-gray-500" id="loading-songs-message">Loading songs...</div>
+                        <div class="col-span-1 text-center">Action</div> 
                     </div>
                 </div>
 
-                <div id="playlist-dropdown-menu" class="hidden bg-gray-700 border border-gray-600 rounded-md shadow-lg w-48">
-                    <p class="p-2 text-xs text-gray-400 border-b border-gray-600">Add to Playlist:</p>
-                    <div id="dropdown-playlist-list" class="divide-y divide-gray-600">
-                        </div>
+                <div id="song-list" class="flex-grow overflow-y-auto scrollbar-thin px-4 pb-4 space-y-1">
+                    <div class="text-center p-8 text-gray-500" id="loading-songs-message">Loading songs...</div>
                 </div>
-
-                <footer class="p-4 bg-gray-900 border-t border-gray-700 flex justify-between items-center">
-                    <div id="now-playing" class="text-sm text-gray-400">
-                        No song currently playing.
-                    </div>
-                    <audio id="audio-player" controls class="w-1/2"></audio>
-                </footer>
             </main>
         </div>
+
+        <div id="playlist-dropdown-menu" class="hidden bg-gray-700 border border-gray-600 rounded-md shadow-lg w-48">
+            <p class="p-2 text-xs text-gray-400 border-b border-gray-600">Add to Playlist:</p>
+            <div id="dropdown-playlist-list" class="divide-y divide-gray-600"></div>
+        </div>
+
+        <footer class="p-4 bg-gray-900 border-t border-gray-700 flex justify-between items-center shrink-0 z-10">
+            <div id="now-playing" class="text-sm text-gray-400">
+                No song currently playing.
+            </div>
+            <audio id="audio-player" controls class="w-1/2"></audio>
+        </footer>
     </div>
 
 
     <script>
-        // Use the public server URL provided by the server environment
-        const SERVER_URL = 'http://127.0.0.1:5000'; // Default to local - this gets replaced by server.py on startup!
+        const SERVER_URL = 'http://127.0.0.1:5000'; 
 
         let currentAuthToken = localStorage.getItem('authToken');
         let currentUserId = localStorage.getItem('userId');
-        let allSongs = []; // Master list of all songs from the library
-        let cachedPlaylists = []; // Cache the list of user playlists
+        let allSongs = []; 
+        let cachedPlaylists = []; 
         
-        // --- Global View State ---
-        let currentViewSongs = []; // The list of songs currently being displayed (Library or Playlist)
-        let activePlaylistId = null; // Track which playlist is active (null for library)
+        let currentViewSongs = []; 
+        let activePlaylistId = null; 
         
         // --- DOM Elements ---
         const authStatusElement = document.getElementById('auth-status');
@@ -168,34 +143,28 @@
         const nowPlayingElement = document.getElementById('now-playing');
         const playlistsContainer = document.getElementById('playlists-container');
         const newPlaylistNameInput = document.getElementById('new-playlist-name');
+        const newPlaylistPublicInput = document.getElementById('new-playlist-public'); // New Checkbox
         const createPlaylistBtn = document.getElementById('create-playlist-btn');
         const songSearchInput = document.getElementById('song-search-input');
         const libraryTitleElement = document.getElementById('library-title');
         const libraryLinkElement = document.getElementById('library-link');
+        const playlistMetaElement = document.getElementById('playlist-meta');
 
         const playlistDropdownMenu = document.getElementById('playlist-dropdown-menu');
         const dropdownPlaylistList = document.getElementById('dropdown-playlist-list');
 
-        // New Upload Elements
         const musicFileInput = document.getElementById('music-file-input');
         const uploadMusicBtn = document.getElementById('upload-music-btn');
         const uploadMessage = document.getElementById('upload-message');
 
-
-        // --- Global State for Dropdown ---
         let currentDropdownSongId = null;
         let activeDropdownButton = null;
 
-
-        // --- Utility Functions ---
+        // --- Utility ---
 
         function getAuthHeaders(contentType = 'application/json') {
-            const headers = {
-                'Authorization': `Bearer ${currentAuthToken}`,
-            };
-            if (contentType) {
-                headers['Content-Type'] = contentType;
-            }
+            const headers = { 'Authorization': `Bearer ${currentAuthToken}` };
+            if (contentType) headers['Content-Type'] = contentType;
             return headers;
         }
 
@@ -208,58 +177,50 @@
         
         function showMessage(element, message, isError = false) {
             element.textContent = message;
-            element.className = isError ? 'text-sm text-center text-red-400' : 'text-sm text-center text-green-400';
+            element.className = isError ? 'text-sm text-center text-red-400 mt-2' : 'text-sm text-center text-green-400 mt-2';
         }
 
-        /**
-         * Plays a song by setting the authenticated stream URL to the audio player.
-         */
-        function playSong(songId, songTitle, songArtist) {
-            if (!currentAuthToken) {
-                showMessage(authMessage, "Please log in to stream music.", true);
-                return;
+        async function apiCall(url, options = {}) {
+            const response = await fetch(url, options);
+            if (response.status === 401) {
+                // Token invalid or expired
+                logout();
+                throw new Error("Session expired");
             }
-            
-            // Remove 'playing' class from all rows
-            document.querySelectorAll('.song-row').forEach(row => row.classList.remove('playing'));
-            
-            // Add 'playing' class to the current song's row
-            const currentRow = document.querySelector(`.song-row[data-id="${songId}"]`);
-            if (currentRow) {
-                currentRow.classList.add('playing');
-            }
+            return response;
+        }
 
-            // The server uses /api/stream/<song_id> and expects the token as a query parameter.
-            const streamUrl = `${SERVER_URL}/api/stream/${songId}?token=${currentAuthToken}`; 
+        function playSong(songId, songTitle, songArtist) {
+            if (!currentAuthToken) return;
+            document.querySelectorAll('.song-row').forEach(row => row.classList.remove('playing'));
+            const currentRow = document.querySelector(`.song-row[data-id="${songId}"]`);
+            if (currentRow) currentRow.classList.add('playing');
             
+            const streamUrl = `${SERVER_URL}/api/stream/${songId}?token=${currentAuthToken}`; 
             audioPlayer.src = streamUrl;
             audioPlayer.play();
             nowPlayingElement.innerHTML = `Playing: <span class="font-bold text-gray-100">${songTitle}</span> by ${songArtist}`;
         }
 
-        // --- Auth State Management (Unchanged) ---
+        // --- Auth ---
 
         function updateAuthState() {
             if (currentAuthToken && currentUserId) {
                 loginFormElement.classList.add('hidden');
                 mainContentElement.classList.remove('hidden');
-                authStatusElement.innerHTML = `Logged in as: <span class="font-medium text-indigo-300">${currentUserId}</span> | <button id="logout-btn" class="text-red-400 hover:text-red-300 ml-2">Logout</button>`;
-                
+                authStatusElement.innerHTML = `User: <span class="font-medium text-indigo-300">${currentUserId}</span> | <button id="logout-btn" class="text-red-400 hover:text-red-300 ml-2">Logout</button>`;
                 document.getElementById('logout-btn').addEventListener('click', logout);
                 
-                // Fetch authenticated content
                 fetchSongs();
                 fetchPlaylists();
                 libraryLinkElement.addEventListener('click', loadLibraryView);
-                
-                // Attach Upload Listeners
-                musicFileInput.addEventListener('change', handleFileChange);
+                musicFileInput.addEventListener('change', () => uploadMusicBtn.disabled = musicFileInput.files.length === 0);
                 uploadMusicBtn.addEventListener('click', handleUploadClick);
 
             } else {
                 loginFormElement.classList.remove('hidden');
                 mainContentElement.classList.add('hidden');
-                authStatusElement.innerHTML = 'Status: <span class="text-yellow-400">Logged Out</span>';
+                authStatusElement.innerHTML = '<span class="text-yellow-400">Logged Out</span>';
                 codeInputArea.classList.add('hidden');
             }
         }
@@ -269,50 +230,32 @@
             currentUserId = null;
             localStorage.removeItem('authToken');
             localStorage.removeItem('userId');
-            // Clear UI elements
             songListElement.innerHTML = '';
             playlistsContainer.innerHTML = '';
             audioPlayer.src = '';
-            nowPlayingElement.textContent = 'No song currently playing.';
-            allSongs = [];
-            cachedPlaylists = [];
-            currentViewSongs = [];
-            activePlaylistId = null;
             updateAuthState();
         }
 
-
-        // --- Login Handlers (Unchanged) ---
+        // --- Login Handlers ---
 
         requestCodeBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
-            if (!email) {
-                showMessage(authMessage, "Please enter your email address.", true);
-                return;
-            }
+            if (!email) return showMessage(authMessage, "Enter email address.", true);
             
             requestCodeBtn.disabled = true;
-            showMessage(authMessage, "Sending code...", false);
-
             try {
                 const response = await fetch(`${SERVER_URL}/api/login/request`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
                     showMessage(authMessage, data.message, false);
                     codeInputArea.classList.remove('hidden');
-                    codeInput.focus();
                 } else {
-                    showMessage(authMessage, data.error || "Failed to request code.", true);
+                    showMessage(authMessage, data.error, true);
                 }
             } catch (error) {
-                console.error("Network Error:", error);
-                showMessage(authMessage, "Network error. Check server URL.", true);
+                showMessage(authMessage, "Network error.", true);
             } finally {
                 requestCodeBtn.disabled = false;
             }
@@ -321,259 +264,210 @@
         verifyCodeBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             const code = codeInput.value.trim();
-            
-            if (!email || !code) {
-                showMessage(authMessage, "Enter both email and code.", true);
-                return;
-            }
+            if (!email || !code) return;
             
             verifyCodeBtn.disabled = true;
-            showMessage(authMessage, "Verifying code...", false);
-
             try {
                 const response = await fetch(`${SERVER_URL}/api/login/verify`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, code })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code })
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
                     currentAuthToken = data.token;
-                    currentUserId = email; // Set user ID to email as returned by server (implicit)
+                    currentUserId = email; 
                     localStorage.setItem('authToken', currentAuthToken);
                     localStorage.setItem('userId', currentUserId);
-                    showMessage(authMessage, "Login successful!", false);
                     updateAuthState();
                 } else {
-                    showMessage(authMessage, data.error || "Login failed.", true);
+                    showMessage(authMessage, data.error, true);
                 }
             } catch (error) {
-                console.error("Network Error:", error);
-                showMessage(authMessage, "Network error. Could not verify code.", true);
+                showMessage(authMessage, "Network error.", true);
             } finally {
                 verifyCodeBtn.disabled = false;
             }
         });
 
+        // --- Song View ---
 
-        // --- Song View Management (Unchanged from previous step) ---
-
-        /**
-         * Renders the filtered list of songs to the UI.
-         * @param {Array<Object>} songsToRender 
-         */
-        function renderSongs(songsToRender) {
-            songListElement.innerHTML = ''; // Clear existing list
-            
+        function renderSongs(songsToRender, canRemove = false) {
+            songListElement.innerHTML = ''; 
             if (songsToRender.length === 0) {
-                songListElement.innerHTML = `<div class="text-center p-8 text-gray-500">No songs found in this view.</div>`;
+                songListElement.innerHTML = `<div class="text-center p-8 text-gray-500">No songs found.</div>`;
                 return;
             }
 
             songsToRender.forEach(song => {
                 const item = document.createElement('div');
-                // Highlight row if it is the currently playing song (optional check if it's the right source)
                 const isPlaying = audioPlayer.src.includes(song.id) && !audioPlayer.paused;
                 item.className = `song-row grid grid-cols-12 gap-4 items-center text-sm p-2 rounded-md cursor-pointer transition duration-100 ${isPlaying ? 'playing' : ''}`;
                 item.dataset.id = song.id;
                 
+                // Add/Remove button logic
+                let actionBtnHTML = `<button class="add-to-playlist-btn text-xs text-indigo-400 hover:text-indigo-300 font-semibold" data-id="${song.id}">+ Add</button>`;
+                if (canRemove) {
+                    actionBtnHTML = `<button class="remove-from-playlist-btn text-xs text-red-400 hover:text-red-300 font-semibold" data-id="${song.id}">- Remove</button>`;
+                }
+
                 item.innerHTML = `
                     <div class="col-span-3 truncate font-medium text-gray-200">${song.title}</div>
                     <div class="col-span-4 truncate text-gray-400">${song.artist}</div>
                     <div class="col-span-3 truncate text-gray-500">${song.album}</div>
                     <div class="col-span-1 text-right text-gray-400">${formatDuration(song.duration)}</div>
-                    <div class="col-span-1 text-center">
-                        <button class="add-to-playlist-btn text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition duration-100" 
-                                data-song-id="${song.id}" 
-                                data-song-title="${song.title}">
-                            + Add
-                        </button>
-                    </div>
+                    <div class="col-span-1 text-center">${actionBtnHTML}</div>
                 `;
 
                 item.addEventListener('click', (e) => {
-                    // Prevent playing if the 'Add' button was clicked directly
-                    if (e.target.closest('.add-to-playlist-btn')) return; 
+                    if (e.target.tagName === 'BUTTON') return; 
                     playSong(song.id, song.title, song.artist);
                 });
 
                 songListElement.appendChild(item);
             });
             
-            // Attach new event listener to all 'Add' buttons
-            document.querySelectorAll('.add-to-playlist-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent the parent row's playSong handler from triggering
-                    const songId = e.target.dataset.songId;
-                    togglePlaylistDropdown(e.target, songId);
-                });
+            // Attach Events
+            document.querySelectorAll('.add-to-playlist-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => togglePlaylistDropdown(e.target, e.target.dataset.id));
             });
+            
+            if (canRemove) {
+                document.querySelectorAll('.remove-from-playlist-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => removeFromPlaylist(e.target.dataset.id));
+                });
+            }
         }
         
-        /**
-         * Filters the currently displayed songs based on the search input.
-         */
         function filterSongs() {
             const query = songSearchInput.value.trim().toLowerCase();
-            const baseSongs = currentViewSongs; // Filter the songs in the current view (Library or Playlist)
-
+            const baseSongs = currentViewSongs;
             if (!query) {
-                renderSongs(baseSongs);
+                // If viewing a playlist and it belongs to current user, allow removal
+                const isOwner = activePlaylistId && cachedPlaylists.find(p => p.id === activePlaylistId)?.user_email === currentUserId;
+                renderSongs(baseSongs, isOwner); 
                 return;
             }
-
             const filtered = baseSongs.filter(song => 
                 song.title.toLowerCase().includes(query) || 
                 song.artist.toLowerCase().includes(query) ||
                 song.album.toLowerCase().includes(query)
             );
-            
-            renderSongs(filtered);
+            // Don't show remove buttons during search to simplify logic
+            renderSongs(filtered, false); 
         }
         
-        /**
-         * Fetches the full list of songs (The Library) and initializes the view.
-         */
         async function fetchSongs() {
             if (!currentAuthToken) return;
-
-            songListElement.innerHTML = `<div class="text-center p-8 text-gray-500" id="loading-songs-message">Loading library...</div>`;
-
+            songListElement.innerHTML = `<div class="text-center p-8 text-gray-500">Loading library...</div>`;
             try {
-                // Fetch a large limit for efficient client-side filtering (max 500)
-                const response = await fetch(`${SERVER_URL}/api/songs?limit=500`, { 
-                    headers: getAuthHeaders(null) 
-                });
-                
+                const response = await apiCall(`${SERVER_URL}/api/songs?limit=500`, { headers: getAuthHeaders(null) });
                 if (response.ok) {
                     const data = await response.json();
                     allSongs = data.songs;
-                    
-                    // Initialize the view to the full library if no playlist is active
                     if (activePlaylistId === null) {
                         currentViewSongs = allSongs;
-                        filterSongs(); // Render all songs initially
+                        filterSongs();
                     }
-                } else {
-                    const errorData = await response.json();
-                    songListElement.innerHTML = `<div class="text-center p-8 text-red-400">Failed to load songs: ${errorData.error || response.statusText}</div>`;
                 }
-
-            } catch (error) {
-                console.error("Network Error during song fetch:", error);
-                songListElement.innerHTML = `<div class="text-center p-8 text-red-400">Network Error. Check console for details.</div>`;
-            }
+            } catch (e) { console.error(e); }
         }
         
-        // --- Song Search Event Listener (Unchanged) ---
         songSearchInput.addEventListener('keyup', filterSongs);
         libraryTitleElement.addEventListener('click', loadLibraryView);
 
-        // --- Playlist View Functions (Unchanged from previous step) ---
+        // --- Playlist View ---
 
-        /**
-         * Switches the main view to the full music library.
-         */
         function loadLibraryView() {
-            if (activePlaylistId === null && !songSearchInput.value.trim()) return; // Already in library, no search query
-            
+            if (activePlaylistId === null && !songSearchInput.value.trim()) return;
             activePlaylistId = null;
             libraryTitleElement.textContent = 'Music Library';
-            currentViewSongs = allSongs; // Reset view model to the full library
-            filterSongs(); // Filter and render
-
-            // Update sidebar visual state
+            playlistMetaElement.classList.add('hidden');
+            currentViewSongs = allSongs;
+            filterSongs();
             document.querySelectorAll('.playlist-item').forEach(item => item.classList.remove('active'));
             libraryLinkElement.classList.add('active');
         }
 
-        /**
-         * Switches the main view to the contents of a specific playlist.
-         */
         async function loadPlaylistView(playlistId, playlistName) {
             activePlaylistId = playlistId;
             libraryTitleElement.textContent = `Playlist: ${playlistName}`;
+            songListElement.innerHTML = `<div class="text-center p-8 text-gray-500">Loading playlist...</div>`;
             
-            songListElement.innerHTML = `<div class="text-center p-8 text-gray-500">Loading playlist songs...</div>`;
-
-            // Update sidebar visual state
             document.querySelectorAll('.playlist-item').forEach(item => item.classList.remove('active'));
             const activeItem = document.querySelector(`.playlist-item[data-playlist-id="${playlistId}"]`);
-            if (activeItem) {
-                 activeItem.classList.add('active');
-            }
-
+            if (activeItem) activeItem.classList.add('active');
 
             try {
-                const response = await fetch(`${SERVER_URL}/api/playlists/${playlistId}`, {
-                    headers: getAuthHeaders(null),
-                });
-
+                const response = await apiCall(`${SERVER_URL}/api/playlists/${playlistId}`, { headers: getAuthHeaders(null) });
                 if (response.ok) {
                     const data = await response.json();
-                    currentViewSongs = data.songs; // Update the view model
-                    filterSongs(); // Filter and render the new list (search query remains)
+                    currentViewSongs = data.songs;
+                    
+                    // Show metadata for public playlists
+                    if (data.creator !== currentUserId) {
+                        playlistMetaElement.innerHTML = `Created by: ${data.creator} <br> on ${data.created_at}`;
+                        playlistMetaElement.classList.remove('hidden');
+                        renderSongs(currentViewSongs, false); // Cannot remove from others' playlists
+                    } else {
+                        playlistMetaElement.classList.add('hidden');
+                        renderSongs(currentViewSongs, true); // Owner can remove
+                    }
+                    
                 } else {
-                    const errorData = await response.json();
-                    currentViewSongs = []; // Clear view
-                    songListElement.innerHTML = `<div class="text-center p-8 text-red-400">Failed to load playlist: ${errorData.error || response.statusText}</div>`;
+                    currentViewSongs = [];
+                    songListElement.innerHTML = `<div class="text-center text-red-400">Error loading playlist.</div>`;
                 }
-            } catch (error) {
-                console.error("Network Error during playlist song fetch:", error);
-                songListElement.innerHTML = `<div class="text-center p-8 text-red-400">Network Error loading playlist.</div>`;
-            }
+            } catch (e) { console.error(e); }
         }
 
+        async function removeFromPlaylist(songId) {
+            if (!activePlaylistId) return;
+            if(!confirm("Remove song from playlist?")) return;
 
-        // --- Playlist Dropdown Functions (Unchanged from previous step) ---
+            try {
+                const response = await apiCall(`${SERVER_URL}/api/playlists/${activePlaylistId}/remove`, {
+                    method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ song_id: songId })
+                });
+                if (response.ok) {
+                    // Update Local State
+                    currentViewSongs = currentViewSongs.filter(s => s.id !== songId);
+                    renderSongs(currentViewSongs, true);
+                    fetchPlaylists(false); // Update sidebar count
+                }
+            } catch (e) { console.error(e); }
+        }
 
-        /**
-         * Toggles the playlist dropdown menu, positioning it next to the clicked button.
-         */
+        // --- Playlist Actions ---
+
         async function togglePlaylistDropdown(button, songId) {
-            // Hide if the same button is clicked again
             if (activeDropdownButton === button) {
                 playlistDropdownMenu.classList.add('hidden');
                 activeDropdownButton = null;
-                currentDropdownSongId = null;
+                return;
+            }
+            if (cachedPlaylists.length === 0) await fetchPlaylists(false);
+
+            // Filter for only OWNED playlists for the "Add to" dropdown
+            const myPlaylists = cachedPlaylists.filter(p => p.user_email === currentUserId);
+
+            if (myPlaylists.length === 0) {
+                alert("Create a playlist first!");
                 return;
             }
 
-            // Ensure playlists are loaded
-            if (cachedPlaylists.length === 0) {
-                // Fetch to populate the cache if empty
-                await fetchPlaylists(false); 
-            }
-
-            // If still no playlists, inform the user
-            if (cachedPlaylists.length === 0) {
-                alert("You need to create a playlist first!");
-                playlistDropdownMenu.classList.add('hidden');
-                return;
-            }
-
-            // 1. Set global state
             currentDropdownSongId = songId;
             activeDropdownButton = button;
             
-            // 2. Position the dropdown
             const buttonRect = button.getBoundingClientRect();
-            const mainContentRect = mainContentElement.getBoundingClientRect();
-
-            // Calculate position relative to the main content container
-            playlistDropdownMenu.style.top = `${buttonRect.top - mainContentRect.top}px`;
-            // Align to the right of the button's column
-            playlistDropdownMenu.style.right = `${mainContentRect.right - buttonRect.right + buttonRect.width - 24}px`; 
-
-            // 3. Populate and show the dropdown
+            // We use fixed positioning relative to the viewport because of overflow:hidden on parents
+            playlistDropdownMenu.style.position = 'fixed';
+            playlistDropdownMenu.style.top = `${buttonRect.bottom + 5}px`;
+            playlistDropdownMenu.style.left = `${buttonRect.left - 150}px`; // Shift left to keep on screen
+            
             dropdownPlaylistList.innerHTML = '';
-            cachedPlaylists.forEach(p => {
+            myPlaylists.forEach(p => {
                 const item = document.createElement('div');
-                item.className = 'p-2 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition duration-100 cursor-pointer';
+                item.className = 'p-2 text-sm text-gray-200 hover:bg-indigo-600 cursor-pointer';
                 item.textContent = p.name;
-                item.dataset.playlistId = p.id;
                 item.addEventListener('click', () => addToPlaylist(p.id, songId, p.name));
                 dropdownPlaylistList.appendChild(item);
             });
@@ -581,225 +475,115 @@
             playlistDropdownMenu.classList.remove('hidden');
         }
 
-        /**
-         * Hides the dropdown when clicking outside of it.
-         */
         document.addEventListener('click', (e) => {
             if (!playlistDropdownMenu.contains(e.target) && !e.target.closest('.add-to-playlist-btn')) {
                 playlistDropdownMenu.classList.add('hidden');
                 activeDropdownButton = null;
-                currentDropdownSongId = null;
             }
         });
 
-
-        /**
-         * API call to add a song to a selected playlist.
-         */
-        async function addToPlaylist(playlistId, songId, playlistName) {
-            if (!currentAuthToken) return;
-
+        async function addToPlaylist(playlistId, songId) {
             playlistDropdownMenu.classList.add('hidden');
-            activeDropdownButton = null;
-            
-            const originalButton = document.querySelector(`.add-to-playlist-btn[data-song-id="${songId}"]`);
-            const originalButtonText = originalButton.textContent;
-            originalButton.textContent = '...Adding';
-
-
             try {
-                const addResponse = await fetch(`${SERVER_URL}/api/playlists/${playlistId}/add`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ song_id: songId })
+                const response = await apiCall(`${SERVER_URL}/api/playlists/${playlistId}/add`, {
+                    method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ song_id: songId })
                 });
-
-                const data = await addResponse.json();
-
-                if (addResponse.ok) {
-                    // Success is silent, just refresh the sidebar to update song count
+                if (response.ok) {
                     fetchPlaylists(false); 
-                    
-                    // If the user is viewing the playlist being modified, update the view immediately
-                    if (activePlaylistId === playlistId) {
-                        loadPlaylistView(playlistId, playlistName);
-                    }
-
-                } else {
-                    alert(`❌ Failed to add song: ${data.error || addResponse.statusText}`);
+                    if (activePlaylistId === playlistId) loadPlaylistView(playlistId, ""); 
                 }
-
-            } catch (error) {
-                console.error("Error adding song to playlist:", error);
-                alert("A network or server error occurred.");
-            } finally {
-                // Restore button text
-                originalButton.textContent = originalButtonText;
-            }
+            } catch (e) { console.error(e); }
         }
 
-
-        /**
-         * Fetches playlists and caches the result.
-         */
         async function fetchPlaylists(showLoading = true) {
             if (!currentAuthToken) return;
-            
-            if (showLoading) {
-                playlistsContainer.innerHTML = '<div class="text-gray-500 text-sm">Loading playlists...</div>';
-            }
-
+            if (showLoading) playlistsContainer.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
             try {
-                const response = await fetch(`${SERVER_URL}/api/playlists`, {
-                    headers: getAuthHeaders(null),
-                });
-
+                const response = await apiCall(`${SERVER_URL}/api/playlists`, { headers: getAuthHeaders(null) });
                 if (response.ok) {
                     const data = await response.json();
-                    // Store the raw list for the dropdown
-                    cachedPlaylists = data.playlists; 
+                    cachedPlaylists = data.playlists;
+                    playlistsContainer.innerHTML = '';
                     
-                    playlistsContainer.innerHTML = ''; // Clear loading message
-
                     if (cachedPlaylists.length === 0) {
-                         playlistsContainer.innerHTML = '<div class="text-gray-500 text-sm p-2">No playlists created yet.</div>';
+                         playlistsContainer.innerHTML = '<div class="text-gray-500 text-sm p-2">No playlists.</div>';
                          return;
                     }
 
                     cachedPlaylists.forEach(p => {
                         const item = document.createElement('div');
                         const isActive = activePlaylistId === p.id;
+                        const isPublic = p.is_public === 1;
+                        const isMine = p.user_email === currentUserId;
+                        
+                        let badge = '';
+                        if (isPublic && isMine) badge = '<span class="text-[10px] bg-indigo-900 text-indigo-300 px-1 rounded ml-2">Public</span>';
+                        if (isPublic && !isMine) badge = '<span class="text-[10px] bg-green-900 text-green-300 px-1 rounded ml-2">Community</span>';
+
                         item.className = `p-3 bg-gray-800 hover:bg-gray-600 transition duration-150 rounded-md cursor-pointer playlist-item ${isActive ? 'active' : ''}`;
                         item.dataset.playlistId = p.id;
-
-                        // Note: If the server API does not return song_count, it will default to 0
-                        const songCount = p.song_count !== undefined ? p.song_count : 0; 
-                        item.innerHTML = `<p class="text-sm font-medium">${p.name}</p><p class="text-xs text-gray-400">${songCount} songs</p>`;
-                        
+                        item.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm font-medium truncate">${p.name}</p>
+                                ${badge}
+                            </div>
+                            <p class="text-xs text-gray-400">${p.song_count || 0} songs ${!isMine ? '• by ' + p.user_email.split('@')[0] : ''}</p>
+                        `;
                         item.addEventListener('click', () => loadPlaylistView(p.id, p.name));
-                        
                         playlistsContainer.appendChild(item);
                     });
-                    
-                    // Re-apply active class to Library link (if needed)
-                    if (activePlaylistId === null) {
-                        libraryLinkElement.classList.add('active');
-                    }
-                    
-                } else {
-                    const data = await response.json();
-                    console.error("Fetch Playlists Failed:", data.error);
-                    playlistsContainer.innerHTML = `<div class="text-red-400 text-sm p-2">Error loading playlists.</div>`;
+                    if (activePlaylistId === null) libraryLinkElement.classList.add('active');
                 }
-            } catch (error) {
-                console.error("Network Error during playlist fetch:", error);
-                playlistsContainer.innerHTML = `<div class="text-red-400 text-sm p-2">Network Error.</div>`;
-            }
+            } catch (e) { console.error(e); }
         }
 
         createPlaylistBtn.addEventListener('click', async () => {
-            if (!currentAuthToken) return;
             const name = newPlaylistNameInput.value.trim();
+            const isPublic = newPlaylistPublicInput.checked;
             if (!name) return;
-
+            createPlaylistBtn.disabled = true;
             try {
-                createPlaylistBtn.disabled = true;
-                const response = await fetch(`${SERVER_URL}/api/playlists`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ name })
+                const response = await apiCall(`${SERVER_URL}/api/playlists`, {
+                    method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ name, is_public: isPublic })
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     newPlaylistNameInput.value = '';
-                    fetchPlaylists(); // Refresh both the list and the cache
-                    // Switch to the newly created playlist view
+                    newPlaylistPublicInput.checked = false;
+                    fetchPlaylists(); 
                     loadPlaylistView(data.id, name);
-                } else {
-                    const data = await response.json();
-                    console.error("Create Playlist Failed:", data.error);
-                    alert(`Failed to create playlist: ${data.error}`);
                 }
-            } catch (error) {
-                console.error("Network Error:", error);
-            } finally {
-                createPlaylistBtn.disabled = false;
-            }
+            } catch (e) { console.error(e); }
+            finally { createPlaylistBtn.disabled = false; }
         });
-        
-        // --- Upload Handlers (NEW) ---
 
-        function handleFileChange() {
-            // Enable button only if a file is selected
-            uploadMusicBtn.disabled = musicFileInput.files.length === 0;
-            uploadMessage.textContent = '';
-        }
-
+        // --- Upload ---
         async function handleUploadClick() {
             const file = musicFileInput.files[0];
-            if (!file) {
-                uploadMessage.textContent = 'Please select a file first.';
-                uploadMessage.className = 'text-xs text-center text-red-400';
-                return;
-            }
-
-            // Basic file type check
-            const allowedExtensions = ['.mp3', '.m4a', '.flac', '.ogg'];
-            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-            if (!allowedExtensions.includes(fileExtension)) {
-                 uploadMessage.textContent = `File type not allowed. Must be one of: ${allowedExtensions.join(', ')}`;
-                 uploadMessage.className = 'text-xs text-center text-red-400';
-                 return;
-            }
-
-
+            if (!file) return;
             uploadMusicBtn.disabled = true;
-            uploadMessage.textContent = `Uploading ${file.name}...`;
-            uploadMessage.className = 'text-xs text-center text-yellow-400';
-
+            uploadMessage.textContent = "Uploading...";
             const formData = new FormData();
             formData.append('file', file);
 
             try {
                 const response = await fetch(`${SERVER_URL}/api/upload`, {
-                    method: 'POST',
-                    // Do NOT set Content-Type header when using FormData
-                    headers: {
-                        'Authorization': `Bearer ${currentAuthToken}`,
-                    },
-                    body: formData
+                    method: 'POST', headers: { 'Authorization': `Bearer ${currentAuthToken}` }, body: formData
                 });
-
-                const data = await response.json();
-
                 if (response.ok) {
-                    uploadMessage.textContent = data.message;
-                    uploadMessage.className = 'text-xs text-center text-green-400';
-                    musicFileInput.value = ''; // Clear input
-                    uploadMusicBtn.disabled = true; // Disable until new file selected
-                    // Refresh the music library list
+                    uploadMessage.textContent = "Done!";
+                    musicFileInput.value = ''; 
                     fetchSongs(); 
                 } else {
-                    uploadMessage.textContent = data.error || 'Upload failed due to a server error.';
-                    uploadMessage.className = 'text-xs text-center text-red-400';
+                    uploadMessage.textContent = "Error.";
                 }
-            } catch (error) {
-                console.error("Network Error during file upload:", error);
-                uploadMessage.textContent = 'Network error during upload.';
-                uploadMessage.className = 'text-xs text-center text-red-400';
-            } finally {
-                // Re-enable button if upload failed and file is still selected
-                if (musicFileInput.files.length > 0) {
-                     uploadMusicBtn.disabled = false;
-                }
+            } catch (e) { console.error(e); }
+            finally { 
+                if(musicFileInput.files.length > 0) uploadMusicBtn.disabled = false; 
+                setTimeout(() => uploadMessage.textContent = '', 3000);
             }
         }
 
-
-        // --- Initialization ---
-
-        // Must call updateAuthState on load to check for existing token
         updateAuthState();
     </script>
 </body>

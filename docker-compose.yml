@@ -1,0 +1,38 @@
+services:
+  # 1. The Shmopify Application Server (Local Only)
+  shmopify:
+    build: .
+    volumes:
+      - .:/usr/src/app
+      - ./library:/usr/src/app/library
+      - ./audio_vault.db:/usr/src/app/audio_vault.db
+      
+    # Binds only to the localhost interface (127.0.0.1) 
+    ports:
+      - "127.0.0.1:5000:5000"
+    
+    restart: unless-stopped
+    
+  # 2. The Ngrok Tunnel Service (Free Plan Compatible)
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok_tunnel
+    depends_on:
+      - shmopify 
+      
+    environment:
+      # ⚠️ IMPORTANT: Replace this with your actual ngrok authtoken 
+      NGROK_AUTHTOKEN: 361wGQ1h4oiZoN1OQOFYN0Ba0lY_3SfS2BrVWnVVPWnREbKdM
+      
+    ports:
+      - "4040:4040" # Ngrok management port
+      
+    command:
+      # Start HTTP tunnel to the shmopify service on port 5000.
+      # The custom hostname flag has been removed.
+      - "http"
+      - "shmopify:5000" 
+      - "--log"
+      - "stdout"
+      
+    restart: unless-stopped

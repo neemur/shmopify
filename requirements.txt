@@ -1,0 +1,9 @@
+flask
+flask-cors
+mutagen
+uuid
+watchdog
+requests
+werkzeug
+gunicorn
+spotdl

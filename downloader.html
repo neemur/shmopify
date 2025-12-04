@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shmotify - Import</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen font-sans flex flex-col items-center justify-center p-4">
+
+    <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-700">
+        <h1 class="text-2xl font-bold text-indigo-400 mb-6 text-center">Playlist Importer</h1>
+        
+        <p class="text-sm text-gray-400 mb-4 bg-gray-700 p-3 rounded border border-gray-600">
+            <strong>Disclaimer:</strong> This tool is provided for educational purposes. 
+            The creator does not support unauthorized downloading of copyrighted material. 
+            <strong>Use at your own risk.</strong>
+        </p>
+
+        <div id="downloader-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Spotify Playlist URL</label>
+                <input type="text" id="url-input" placeholder="http://spotify.com/playlist/..." class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">New Playlist Name</label>
+                <input type="text" id="name-input" placeholder="My Awesome Jams" class="w-full p-3 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            
+            <button id="download-btn" class="w-full p-3 bg-green-600 hover:bg-green-700 rounded-md font-semibold transition duration-150">
+                Import Playlist
+            </button>
+        </div>
+
+        <div id="status-msg" class="text-center text-sm mt-4 hidden"></div>
+        
+        <div class="mt-6 text-center border-t border-gray-700 pt-4">
+            <a href="/" class="text-indigo-400 hover:text-indigo-300 text-sm">← Back to Shmotify</a>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = window.location.origin;
+        const authToken = localStorage.getItem('authToken');
+
+        if (!authToken) {
+            alert("Please log in to Shmotify first.");
+            window.location.href = "/";
+        }
+
+        const downloadBtn = document.getElementById('download-btn');
+        const urlInput = document.getElementById('url-input');
+        const nameInput = document.getElementById('name-input');
+        const statusMsg = document.getElementById('status-msg');
+
+        downloadBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            const name = nameInput.value.trim();
+            
+            if (!url || !name) {
+                statusMsg.textContent = "❌ URL and Name are required.";
+                statusMsg.className = "text-center text-sm mt-4 text-red-400";
+                statusMsg.classList.remove('hidden');
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = "Queueing...";
+            statusMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/download_external`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ url, name })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusMsg.innerHTML = `✅ Playlist queued!<br><span class="text-xs text-gray-400">Check the sidebar in your library for progress.</span>`;
+                    statusMsg.className = "text-center text-sm mt-4 text-green-400";
+                    urlInput.value = '';
+                    nameInput.value = '';
+                } else {
+                    statusMsg.textContent = "❌ " + (data.error || "Failed to start download");
+                    statusMsg.className = "text-center text-sm mt-4 text-red-400";
+                }
+            } catch (error) {
+                statusMsg.textContent = "❌ Network Error";
+                statusMsg.className = "text-center text-sm mt-4 text-red-400";
+            } finally {
+                statusMsg.classList.remove('hidden');
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = "Import Playlist";
+            }
+        });
+    </script>
+</body>
+</html>
